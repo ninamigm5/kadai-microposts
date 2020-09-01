@@ -1,12 +1,16 @@
 class User < ApplicationRecord
+  #ユーザ　バリデーション start =================================================================
   before_save { self.email.downcase! }
   validates :name, presence: true, length: { maximum: 50 }
   validates :email, presence: true, length: { maximum: 255 },
                     format: { with: /\A[\w+\-.]+@[a-z\d\-.]+\.[a-z]+\z/i },
                     uniqueness: { case_sensitive: false }
   has_secure_password
-
+  #ユーザ　バリデーション end ===================================================================
+  #投稿機能 start ===============================================================================
   has_many :microposts
+  #投稿機能 end =================================================================================
+  #フォロー機能 start ===========================================================================
   has_many :relationships
   has_many :followings, through: :relationships, source: :follow
   has_many :reverses_of_relationship, class_name: 'Relationship', foreign_key: 'follow_id'
@@ -30,5 +34,24 @@ class User < ApplicationRecord
   def feed_microposts
     Micropost.where(user_id: self.following_ids + [self.id])
   end
+  #フォロー機能 end ===========================================================================
+  #お気に入り start ===========================================================================
+  has_many :favorites
+  has_many :likes, through: :favorites, source: :micropost
+
+  def favorite(user)
+    self.favorites.find_or_create_by(micropost_id: user.id)
+  end
+
+  def unfavorite(user)
+    favorite = self.favorites.find_by(micropost_id: user.id)
+    favorite.destroy if favorite
+  end
+
+  def favorite?(micropost)
+    self.likes.include?(micropost)
+  end
+
+  #お気に入り end   ===========================================================================
 
 end
